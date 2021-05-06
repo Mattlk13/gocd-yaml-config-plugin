@@ -10,6 +10,8 @@ import java.util.Map;
 
 import static cd.go.plugin.config.yaml.JSONUtils.addOptionalValue;
 import static cd.go.plugin.config.yaml.YamlUtils.*;
+import static java.lang.String.format;
+import static java.util.UUID.randomUUID;
 
 public class MaterialTransform extends ConfigurationTransform {
 
@@ -18,13 +20,14 @@ public class MaterialTransform extends ConfigurationTransform {
     public static final String JSON_MATERIAL_AUTO_UPDATE_FIELD = "auto_update";
     public static final String JSON_MATERIAL_SHALLOW_CLONE_FIELD = "shallow_clone";
     public static final String JSON_MATERIAL_SCM_PLUGIN_CONFIG_FIELD = "plugin_configuration";
+    public static final String JSON_MATERIAL_IGNORE_FOR_SCHEDULING_FIELD = "ignore_for_scheduling";
 
     public static final String YAML_MATERIAL_TYPE_FIELD = "type";
     public static final String YAML_MATERIAL_AUTO_UPDATE_FIELD = "auto_update";
     public static final String YAML_MATERIAL_SHALLOW_CLONE_FIELD = "shallow_clone";
+    public static final String YAML_MATERIAL_IGNORE_FOR_SCHEDULING_FIELD = "ignore_for_scheduling";
 
     public static final String YAML_SHORT_KEYWORD_GIT = "git";
-    //TODO others
 
     public static final String YAML_BLACKLIST_KEYWORD = "blacklist";
     private static final String YAML_SHORT_KEYWORD_DEPENDENCY = "pipeline";
@@ -44,12 +47,14 @@ public class MaterialTransform extends ConfigurationTransform {
 
     public MaterialTransform() {
         yamlSpecialKeywords.add(YAML_SHORT_KEYWORD_GIT);
-        // TODO all other transforms
+        yamlSpecialKeywords.add("name");
         yamlSpecialKeywords.add("type");
         yamlSpecialKeywords.add("auto_update");
         yamlSpecialKeywords.add("shallow_clone");
         yamlSpecialKeywords.add("blacklist");
         yamlSpecialKeywords.add("whitelist");
+        yamlSpecialKeywords.add("includes");
+        yamlSpecialKeywords.add("excludes");
         yamlSpecialKeywords.add("scm_id");
         yamlSpecialKeywords.add("package_id");
         yamlSpecialKeywords.add("svn");
@@ -59,12 +64,13 @@ public class MaterialTransform extends ConfigurationTransform {
         yamlSpecialKeywords.add("use_tickets");
         yamlSpecialKeywords.add(YAML_SHORT_KEYWORD_PACKAGE_ID);
         yamlSpecialKeywords.add(YAML_SHORT_KEYWORD_SCM_ID);
+        yamlSpecialKeywords.add(YAML_MATERIAL_IGNORE_FOR_SCHEDULING_FIELD);
     }
 
-    public JsonObject transform(Object maybeMaterial) {
+    public JsonObject transform(Object maybeMaterial, int formatVersion) {
         Map<String, Object> map = (Map<String, Object>) maybeMaterial;
         for (Map.Entry<String, Object> entry : map.entrySet()) {
-            return transform(entry);
+            return transform(entry, formatVersion);
         }
         throw new RuntimeException("expected material hash to have 1 item");
     }
@@ -114,6 +120,8 @@ public class MaterialTransform extends ConfigurationTransform {
         addOptionalValue(materialdata, material, JSON_MATERIAL_CHECK_EXTERNALS_FIELD, YAML_MATERIAL_CHECK_EXTERNALS_FIELD);
         addOptionalValue(materialdata, material, JSON_MATERIAL_AUTO_UPDATE_FIELD, YAML_MATERIAL_AUTO_UPDATE_FIELD);
 
+        addOptionalValue(materialdata, material, JSON_MATERIAL_IGNORE_FOR_SCHEDULING_FIELD, YAML_MATERIAL_IGNORE_FOR_SCHEDULING_FIELD);
+
 
         // copy all other members
         for (Map.Entry<String, Object> materialProp : material.entrySet()) {
@@ -124,14 +132,15 @@ public class MaterialTransform extends ConfigurationTransform {
         }
 
         if (materialName == null) {
-            inverseMaterial.put(materialType, materialdata);
+            String randomName = format("%s-%s", materialType, randomUUID().toString().substring(0, 7));
+            inverseMaterial.put(randomName, materialdata);
         } else {
             inverseMaterial.put(materialName, materialdata);
         }
         return inverseMaterial;
     }
 
-    public JsonObject transform(Map.Entry<String, Object> entry) {
+    public JsonObject transform(Map.Entry<String, Object> entry, int formatVersion) {
         String materialName = entry.getKey();
         JsonObject material = new JsonObject();
         material.addProperty(JSON_MATERIAL_NAME_FIELD, materialName);
@@ -141,10 +150,16 @@ public class MaterialTransform extends ConfigurationTransform {
         addOptionalBoolean(material, materialMap, JSON_MATERIAL_SHALLOW_CLONE_FIELD, YAML_MATERIAL_SHALLOW_CLONE_FIELD);
         addOptionalBoolean(material, materialMap, JSON_MATERIAL_CHECK_EXTERNALS_FIELD, YAML_MATERIAL_CHECK_EXTERNALS_FIELD);
         addOptionalBoolean(material, materialMap, JSON_MATERIAL_USE_TICKETS_FIELD, YAML_MATERIAL_USE_TICKETS_FIELD);
+        addOptionalBoolean(material, materialMap, JSON_MATERIAL_IGNORE_FOR_SCHEDULING_FIELD, YAML_MATERIAL_IGNORE_FOR_SCHEDULING_FIELD);
         if (materialMap.containsKey("blacklist"))
             addFilter(material, materialMap.get("blacklist"), "ignore");
+        if (materialMap.containsKey("ignore"))
+            addFilter(material, materialMap.get("ignore"), "ignore");
+        String jsonIncludesKeyword = formatVersion < 10 ? "whitelist" : "includes";
+        if (materialMap.containsKey("includes"))
+            addFilter(material, materialMap.get("includes"), jsonIncludesKeyword);
         if (materialMap.containsKey("whitelist"))
-            addFilter(material, materialMap.get("whitelist"), "whitelist");
+            addFilter(material, materialMap.get("whitelist"), jsonIncludesKeyword);
 
         String git = getOptionalString(materialMap, YAML_SHORT_KEYWORD_GIT);
         if (git != null) {
@@ -197,11 +212,11 @@ public class MaterialTransform extends ConfigurationTransform {
     private void addInverseFilter(Map<String, Object> material, Map<String, Object> filterList) {
         List<String> filter = (List<String>) filterList.get("ignore");
         if (filter != null && !filter.isEmpty()) {
-            material.put("blacklist", filter);
+            material.put("ignore", filter);
         }
-        filter = (List<String>) material.get("whitelist");
+        filter = (List<String>) filterList.get("includes");
         if (filter != null && !filter.isEmpty()) {
-            material.put("whitelist", filter);
+            material.put("includes", filter);
         }
     }
 

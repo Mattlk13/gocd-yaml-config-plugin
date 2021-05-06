@@ -2,7 +2,7 @@
 
 # gocd-yaml-config-plugin
 
-[![Build Status](https://travis-ci.org/tomzo/gocd-yaml-config-plugin.svg?branch=master)](https://travis-ci.org/tomzo/gocd-yaml-config-plugin)
+[![Build Status](https://travis-ci.com/tomzo/gocd-yaml-config-plugin.svg?branch=master)](https://travis-ci.com/tomzo/gocd-yaml-config-plugin)
 
 [GoCD](https://www.gocd.org) plugin to keep **pipelines** and **environments**
 configuration in source-control in [YAML](http://www.yaml.org/).
@@ -52,7 +52,7 @@ More examples are in [test resources](src/test/resources/examples/).
 
 ```yaml
 #ci.gocd.yaml
-format_version: 5
+format_version: 9
 environments:
   testing:
     environment_variables:
@@ -115,7 +115,7 @@ pipelines:
 
 ## File pattern
 
-The default pattern is `**/*.gocd.yaml` and `**/*.gocd.yml`, which will recursively search the entire repository for all files ending with `.gocd.yaml` or `.gocd.yml`.
+The default pattern is `**/*.gocd.yaml,**/*.gocd.yml`, which will recursively search the entire repository for all files ending with `.gocd.yaml` or `.gocd.yml`.
 
 You can set a custom file pattern per configuration repository using the GoCD configuration UI:
 ![yaml pattern config](yaml_file_pattern.png)
@@ -129,7 +129,8 @@ Or in the config XML using `<configuration>`:
     <configuration>
       <property>
         <key>file_pattern</key>
-        <value>pipeline.gocd.yaml</value>
+        <!-- comma-separate multiple patterns -->
+        <value>pipelines/build/*.yml,pipelines/lint/*.yml</value>
       </property>
     </configuration>
   </config-repo>
@@ -137,6 +138,12 @@ Or in the config XML using `<configuration>`:
 ```
 
 # Validation
+
+You can validate if proposed GoCD YAML changes will be accepted by the server. Currently, 2 options are available:
+ * Use a [GoCD mergable github action](https://github.com/GaneshSPatil/gocd-mergeable)
+ * [Validate from your local machine](#validation-using-cli)
+
+## Validation using CLI
 
 *You may find this [introductory blog post useful](https://kudulab.io/posts/gocd-preflight-validation/).*
 
@@ -148,14 +155,14 @@ You have several options to configure validation tools on your workstation:
 
 Either way you'll have `gocd` binary in your `PATH` or inside the docker container.
 
-## Syntax validation
+### Syntax validation
 
 This will check general validity of the yaml file, without talking to the GoCD server:
 ```bash
 gocd configrepo syntax --yaml pipeline.gocd.yaml
 ```
 
-## Preflight validation
+### Preflight validation
 
 This command will parse and submit your yaml file to the configured GoCD server.
 ```
@@ -216,18 +223,45 @@ Feel free to improve it!
 
 Please note that it is now recommended to declare `format_version` in each `gocd.yaml` file, consistent across all your files.
 
-#### GoCD server version from 19.4.0 and beyond
+#### GoCD server version from 20.8.0 and beyond
 
-Supports `format_version` value of `5`. In this version, support of `username` and `encrypted_password` for [git](#git-material-update) and [hg](#hg-material-update) material has been added. In addition to that, [hg](#hg-material-update) will also support `branch` attribute.
+Supports `format_version` value of `10`. This version removes usage of `blacklist/whitelist` keywords in favour of `includes/ignore`. This is done in a backwards compatible way - you can upgrade the server and plugin first, and update the format_version to 10 after. Just replace `whitelist` by `includes`, and `blacklist` by `ignore`.
+
+Additionally, plugin is also "forwards compatible" since version 0.13.0. If you can't upgrade GoCD to 20.8.0, but want to migrate from `blacklist/whitelist` to `includes/ignore`, you can upgrade the plugin and keep the format_version that you are using. Plugin will migrate keywords under the hood, while your YAML can use `includes/ignore`.
 
 Using a newer `format_version` includes all the behavior of the previous versions too.
 
 ```yaml
-format_version: 5
+format_version: 10
 pipelines:
   ...
 environments:
 ```
+
+#### GoCD server version from 19.10.0 and beyond
+
+Supports `format_version` value of `9`. In this version, support of `ignore_for_scheduling` for [dependency materials](#dependency) has been added. Setting this attribute will skip scheduling the pipeline when the dependency material has changed.
+
+Using a newer `format_version` includes all the behavior of the previous versions too.
+
+#### GoCD server version from 19.9.0 and beyond
+
+Supports `format_version` value of `7` and `8`. In version `7`, support for [properties](#property) has been removed. In version `8`, support for `mingle` as a [tracking tool](#tracking-tool) has been removed.
+
+Using a newer `format_version` includes all the behavior of the previous versions too.
+
+
+#### GoCD server version from 19.8.0 and beyond
+
+Supports `format_version` value of `6`. In this version, support of `allow_only_on_success` attribute for [approval](#approval) in stage has been added. Setting this attribute to `true` will allow the stage to be manually triggered only if the previous stage has passed successfully.
+
+Using a newer `format_version` includes all the behavior of the previous versions too.
+
+#### GoCD server version from 19.4.0 to 19.7.0
+
+Supports `format_version` value of `5`. In this version, support of `username` and `encrypted_password` for [git](#git-material-update) and [hg](#hg-material-update) material has been added. In addition to that, [hg](#hg-material-update) will also support `branch` attribute.
+
+Using a newer `format_version` includes all the behavior of the previous versions too.
 
 
 #### GoCD server version 19.3.0
@@ -236,47 +270,19 @@ Supports `format_version` value of `4`. In this version, support has been added 
 
 This server version also supports `format_version` of `3` and `2`. Using a newer `format_version` includes all the behavior of the previous versions too.
 
-```yaml
-format_version: 4
-pipelines:
-  ...
-environments:
-```
-
 #### GoCD server version from 18.7.0 to 19.2.0
 
 Supports `format_version` value of `3`. In this version [fetch artifact](#fetch) format was changed to include `artifact_origin`.
 
 This server version also supports `format_version` of `2`. Using a newer `format_version` includes all the behavior of the previous versions too.
 
-```yaml
-format_version: 3
-pipelines:
-  ...
-environments:
-```
-
 #### GoCD server version from 17.12.0 to 18.6.0
 
 Supports `format_version` value of `2`. In this version [pipeline locking](#pipeline-locking) behavior was changed.
 
-```yaml
-format_version: 2
-pipelines:
-  ...
-environments:
-```
-
 #### GoCD server version up to 17.11.0
 
 Supports `format_version` value of `1`. This is the initial version.
-
-```yaml
-format_version: 1
-pipelines:
-  ...
-environments:
-```
 
 # Pipeline
 
@@ -389,7 +395,7 @@ timer:
   only_on_changes: yes
 ```
 
-See [XML reference](https://docs.gocd.org/current/configuration/configuration_reference.html#timer) for more information.
+See [Quartz](https://www.quartz-scheduler.org/documentation/quartz-2.3.0/tutorials/crontrigger.html) about writing cron-like schedules.
 
 ### Pipeline locking
 
@@ -460,11 +466,14 @@ If you need to set associated users or roles:
 ```yaml
 approval:
   type: manual
+  allow_only_on_success: true
   roles:
     - manager
   users:
     - john
 ```
+
+You can set `allow_only_on_success` to allow manual trigger only if the previous stage run is successful. The default value is `false`.
 
 ## Job
 
@@ -495,10 +504,6 @@ test:
             Tag: v${GO_PIPELINE_LABEL}
           secure_options:
             some_secure_property: "!@ESsdD323#sdu"
-  properties:
-    perf:
-      source: test.xml
-      xpath: "substring-before(//report/data/all/coverage[starts-with(@type,\u0027class\u0027)]/@value, \u0027%\u0027)"
   tasks:
     ...
 ```
@@ -587,6 +592,7 @@ tabs:
 ```
 
 ### Property
+**DEPRECATION NOTICE: Since GoCD version 19.9 and format_version 7, properties are no longer supported**
 
 Job can have properties, declared as a hash:
 ```yaml
@@ -641,6 +647,10 @@ More customized git material is possible:
 gitMaterial1:
   git: "http://my.git.repository.com"
   branch: feature12
+  ignore:
+    - externals/**/*.*
+    - tools/**/*.*
+# For GoCD < 20.8.0 or plugin version < 0.13.0, you need to use blacklist instead of ignore:
   blacklist:
     - externals/**/*.*
     - tools/**/*.*
@@ -649,12 +659,15 @@ gitMaterial1:
   shallow_clone: true
 ```
 
-Since GoCD `>= 16.7.0` whitelist is also supported,
-you can specify `whitelist` **instead** of `blacklist`, as such
+Since GoCD `>= 16.7.0` includes is also supported,
+you can specify `includes` **instead** of `ignore`, as such
 ```yaml
 gitMaterial1:
   git: "git@my.git.repository.com"
   branch: "feature12"
+  includes:
+    - src/**/*.*
+# For GoCD < 20.8.0 or plugin version < 0.13.0, you need to use whitelist instead:
   whitelist:
     - src/**/*.*
 ```
@@ -690,6 +703,10 @@ svnMaterial1:
   username: "user1"
   encrypted_password: "encrypted_value"
   check_externals: true
+  ignore:
+    - tools
+    - lib
+# For GoCD < 20.8.0 or plugin version < 0.13.0, you need to use blacklist instead of ignore:
   blacklist:
     - tools
     - lib
@@ -703,6 +720,10 @@ Instead of `encrypted_password` you can specify `password`.
 ```yaml
 hgMaterial1:
   hg: repos/myhg
+  ignore:
+    - externals
+    - tools
+# For GoCD < 20.8.0 or plugin version < 0.13.0, you need to use blacklist instead of ignore:
   blacklist:
     - externals
     - tools
@@ -753,6 +774,10 @@ p4Material1:
   view: |
     //depot/external... //ws/external...
     //depot/tools... //ws/external...
+  ignore:
+    - externals
+    - tools
+# For GoCD < 20.8.0 or plugin version < 0.13.0, you need to use blacklist instead of ignore:
   blacklist:
     - externals
     - tools
@@ -771,6 +796,10 @@ Instead of `encrypted_password` you can specify `password`.
 myPluggableGit:
   scm: someScmGitRepositoryId
   destination: destinationDir
+  ignore:
+    - dir1
+    - dir2
+# For GoCD < 20.8.0 or plugin version < 0.13.0, you need to use blacklist instead of ignore:
   blacklist:
     - dir1
     - dir2
@@ -779,14 +808,20 @@ myPluggableGit:
 Since GoCD `>= 19.2.0` defining new pluggable materials that are not defined
 in the GoCD server is supported.
 
-```
+```yaml
 myPluggableGit:
   plugin_configuration:
     id: plugin_Id
     version: 1 #plugin version
   options:
     url: git@github.com:tomzo/gocd-yaml-config-plugin.git
+  secure_options:
+    password: "encrypted_value"
   destination: destinationDir
+  ignore:
+    - dir1
+    - dir2
+# For GoCD < 20.8.0 or plugin version < 0.13.0, you need to use blacklist instead of ignore:
   blacklist:
     - dir1
     - dir2
@@ -828,7 +863,7 @@ materials:
 
 Server interprets `configrepo` material in this way:
 
-> Clone the material configuration of the repository we are parsing **as is in XML** and replace **name, destination and filters (whitelist/blacklist)**,
+> Clone the material configuration of the repository we are parsing **as is in XML** and replace **name, destination and filters (includes/ignore)**,
 then use the modified clone in place of `configrepo` material.
 
 ### Dependency
@@ -838,6 +873,7 @@ To add a dependency on another pipeline stage:
 mydependency:
   pipeline: upstream-pipeline-1
   stage: test
+  ignore_for_scheduling: false
 ```
 
 **Note: `mydependency` is the name of material - it must be unique**
@@ -1181,7 +1217,7 @@ And this is done by the GoCD server:
 
 ## Environment setup
 
-To build and test this plugin, you'll need java jdk >= 8.
+To build and test this plugin, you'll need java jdk >= 11.
 
 If you have local java environment, then you may run all tests and create a ready to use jar with:
 ```bash
@@ -1190,19 +1226,27 @@ If you have local java environment, then you may run all tests and create a read
 
 ## Building with docker and dojo
 
-You don't need to setup java on your host, if you are fine with using docker and [Dojo](https://github.com/ai-traders/dojo).
+You don't need to setup java on your host, if you are fine with using docker and [Dojo](https://github.com/kudulab/dojo).
 This is actually how our GoCD builds the plugin:
-```
+```sh
 dojo "gradle test jar"
 ```
 
-Assuming you already have a working docker, you can install dojo with:
+Assuming you already have a working docker, On OSX, you can install with homebrew:
 ```
-DOJO_VERSION=0.5.0
-wget -O dojo https://github.com/ai-traders/dojo/releases/download/${DOJO_VERSION}/dojo_linux_amd64
-sudo mv dojo /usr/local/bin
-sudo chmod +x /usr/local/bin/dojo
+brew install kudulab/homebrew-dojo-osx/dojo
 ```
+A manual install is another option:
+```sh
+version="0.9.0"
+# on Linux:
+wget -O /tmp/dojo https://github.com/kudulab/dojo/releases/download/${version}/dojo_linux_amd64
+# or on Darwin:
+# wget -O /tmp/dojo https://github.com/kudulab/dojo/releases/download/${version}/dojo_darwin_amd64
+chmod +x /tmp/dojo
+mv /tmp/dojo /usr/bin/dojo
+```
+
 Then enter a docker container with java and gradle pre-installed, by running following command at the root of the project:
 ```
 dojo
@@ -1229,7 +1273,7 @@ There are [examples of yaml partials](src/test/resources/parts) and
 
 # License
 
-Copyright 2019 Tomasz Sętkowski
+Copyright 2020 Tomasz Sętkowski
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

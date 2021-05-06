@@ -1,4 +1,26 @@
-### 0.11.1 - Unreleased
+### 0.13.2 (2020-Dec-09)
+
+* use newer openjdk Dojo image kudulab/openjdk-dojo:1.4.1
+
+### 0.13.0 (2020-Sep-11)
+
+* whitelist to includes rename, blacklist to ignore
+* V3 capabilities API implementation
+* Support `includes` in the JSON input for pipeline export. Related to: https://github.com/gocd/gocd/pull/8266
+* Fix for pipeline export with multiple materials without name, \#144
+
+### 0.12.0 (2019-Oct-02)
+
+* Added support for `ignore_for_scheduling` to dependency materials. Updated README with changes in new Format Versions.
+* Updated library dependencies
+
+### 0.11.2 (2019-Aug-22)
+
+* updated README documenting `allow_only_on_success` attribute for approval in stages
+
+### 0.11.1 (2019-Aug-21)
+
+Release deleted.
 
 ### 0.11.0 (2019-Aug-02)
 
