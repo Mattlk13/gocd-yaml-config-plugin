@@ -5,8 +5,8 @@ apply from: "https://raw.githubusercontent.com/gocd/gocd-plugin-gradle-task-help
 
 gocdPlugin {
     id = 'yaml.config.plugin'
-    pluginVersion = '1.0.0'
-    goCdVersion = '22.1.0'
+    pluginVersion = '2.0.0'
+    goCdVersion = '24.1.0'
     name = 'YAML Configuration Plugin'
     description = 'GoCD pipelines and environments configuration in YAML'
     vendorName = 'Tomasz Setkowski'
@@ -33,12 +33,12 @@ repositories {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 tasks.withType(JavaCompile).configureEach {
-    options.release = 17
+    options.release = 21
 }
 
 ext {
@@ -52,7 +52,7 @@ dependencies {
     implementation 'org.apache.ant:ant:1.10.17'
     implementation 'com.beust:jcommander:1.82'
     implementation 'com.contrastsecurity:yamlbeans:1.17'
-    implementation 'org.yaml:snakeyaml:2.6'
+    implementation 'org.snakeyaml:snakeyaml-engine:3.0.1'
 
     compileOnly "cd.go.plugin:go-plugin-api:$pluginApiVersion"
     testImplementation "cd.go.plugin:go-plugin-api:$pluginApiVersion"
@@ -88,6 +88,7 @@ jar {
     }
 
     exclude "allow.class" // Noise from Ant
+    exclude "module-info.class" // Not safe to include, would need to be regenerated
     exclude "META-INF/*.txt"
     exclude "META-INF/*.LIST"
     exclude "META-INF/versions/**"

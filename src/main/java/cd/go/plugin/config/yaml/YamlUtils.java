@@ -3,8 +3,9 @@ package cd.go.plugin.config.yaml;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.Yaml;
+import org.snakeyaml.engine.v2.api.Dump;
+import org.snakeyaml.engine.v2.api.DumpSettings;
+import org.snakeyaml.engine.v2.common.FlowStyle;
 
 import java.util.List;
 import java.util.Map;
@@ -20,10 +21,13 @@ public class YamlUtils {
             "n|N|no|No|NO|false|False|FALSE|off|Off|OFF");
 
     public static String dump(Object o) {
-        DumperOptions options = new DumperOptions();
-        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        options.setPrettyFlow(true);
-        return new Yaml(options).dump(o);
+        DumpSettings options = DumpSettings
+                .builder()
+                .setDefaultFlowStyle(FlowStyle.BLOCK)
+                .setDumpComments(true)
+                .setMultiLineFlow(true)
+                .build();
+        return new Dump(options).dumpToString(o);
     }
 
     public static void addOptionalObject(JsonObject jsonObject, Map<String, Object> yamlSource, String jsonField, String yamlFieldName) {

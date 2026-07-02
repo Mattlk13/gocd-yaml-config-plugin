@@ -1,13 +1,13 @@
 pipe2:
   group: group1
   label_template: "foo-1.0-${COUNT}"
-  locking: on
+  locking: true
   tracking_tool:
     link: "http://your-trackingtool/yourproject/${ID}"
     regex: "evo-(\\d+)"
   timer:
     spec: "0 15 10 * * ? *"
-    only_on_changes: yes
+    only_on_changes: true
   materials:
     foo: {}
   stages:

@@ -5,7 +5,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
-import org.yaml.snakeyaml.Yaml;
+import org.snakeyaml.engine.v2.api.Load;
+import org.snakeyaml.engine.v2.api.LoadSettings;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,9 +56,9 @@ public class TestUtils {
     }
 
     public static void assertYamlEquivalent(String expected, String actual) {
-        Yaml yaml = new Yaml();
-        Object expectedParse = yaml.load(expected);
-        Object actualParse = yaml.load(actual);
+        Load loader = new Load(LoadSettings.builder().build());
+        Object expectedParse = loader.loadFromString(expected);
+        Object actualParse = loader.loadFromString(actual);
         assertEquals(expectedParse, actualParse);
     }
 
